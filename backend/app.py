@@ -81,6 +81,10 @@ def process_image():
     - center_freq: float (cho band-reject, optional)
     - bandwidth: float (cho band-reject, optional)
     """
+    print("=== Received /api/process request ===")
+    print(f"Content-Type: {request.content_type}")
+    print(f"Has files: {'image' in request.files}")
+    print(f"Has json: {request.is_json}")
     try:
         # Lấy tham số
         filter_type = request.form.get('filter_type', 'gaussian').lower()
@@ -105,16 +109,21 @@ def process_image():
         
         # Thử lấy từ file upload
         if 'image' in request.files:
+            print("Reading image from file upload...")
             file = request.files['image']
-            if file and allowed_file(file.filename):
-                # Đọc ảnh từ file
-                file_bytes = file.read()
-                nparr = np.frombuffer(file_bytes, np.uint8)
-                image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-                if image is None:
-                    return jsonify({'error': 'Không thể đọc ảnh từ file'}), 400
-            else:
-                return jsonify({'error': 'File không hợp lệ'}), 400
+            if file and file.filename:  # Có filename
+                if not allowed_file(file.filename):
+                    return jsonify({'error': 'Định dạng file không được phép'}), 400
+            # Đọc ảnh từ file (có thể không có filename nếu là blob)
+            file_bytes = file.read()
+            print(f"File size: {len(file_bytes)} bytes")
+            if len(file_bytes) == 0:
+                return jsonify({'error': 'File rỗng'}), 400
+            nparr = np.frombuffer(file_bytes, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            if image is None:
+                return jsonify({'error': 'Không thể đọc ảnh từ file. Có thể file không phải là ảnh hợp lệ.'}), 400
+            print(f"Image decoded successfully. Shape: {image.shape}")
         
         # Thử lấy từ base64
         elif 'image' in request.json:
@@ -133,9 +142,11 @@ def process_image():
             return jsonify({'error': 'Không tìm thấy ảnh trong request'}), 400
         
         # Xử lý ảnh
+        print(f"Processing image with filter_type={filter_type}, filter_mode={filter_mode}, cutoff={cutoff}")
         processor = ImageProcessor()
         processor.load_image_from_array(image)
         
+        print("Starting image processing...")
         processed_image = processor.process_image(
             filter_type=filter_type,
             filter_mode=filter_mode,
@@ -144,6 +155,7 @@ def process_image():
             center_freq=center_freq,
             bandwidth=bandwidth
         )
+        print("Image processing completed")
         
         # Lấy các thông tin bổ sung
         magnitude_spectrum = processor.get_magnitude_spectrum_image()
@@ -166,6 +178,10 @@ def process_image():
         })
     
     except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"Error in process_image: {str(e)}")
+        print(f"Traceback: {error_trace}")
         return jsonify({'error': f'Lỗi xử lý: {str(e)}'}), 500
 
 

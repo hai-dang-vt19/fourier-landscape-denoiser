@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import ImageUploader from './components/ImageUploader';
 import FilterControl from './components/FilterControl';
 import ComparisonView from './components/ComparisonView';
@@ -44,34 +44,33 @@ function App() {
     setError(null);
   };
 
-  // Debounce khi thay đổi tham số để tránh gọi API liên tục
-  const debounceTimerRef = useRef(null);
+  // Chỉ cập nhật params khi thay đổi (không render)
   const handleFilterChange = (params) => {
     setFilterParams(params);
+  };
+
+  // Xử lý ảnh khi click nút
+  const handleProcessImage = async (params) => {
     if (!originalImage) return;
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-    debounceTimerRef.current = setTimeout(async () => {
-      setIsProcessing(true);
-      setError(null);
-      try {
-        const result = await processImage(originalImage, params);
-        if (result.success) {
-          setProcessedImage(result.processed_image);
-          setMagnitudeSpectrum(result.magnitude_spectrum);
-          setFilterMask(result.filter_mask);
-          setMetrics(result.metrics);
-        } else {
-          throw new Error('Xử lý ảnh không thành công');
-        }
-      } catch (err) {
-        setError(err.message);
-        console.error('Error processing image:', err);
-      } finally {
-        setIsProcessing(false);
+    
+    setIsProcessing(true);
+    setError(null);
+    try {
+      const result = await processImage(originalImage, params);
+      if (result.success) {
+        setProcessedImage(result.processed_image);
+        setMagnitudeSpectrum(result.magnitude_spectrum);
+        setFilterMask(result.filter_mask);
+        setMetrics(result.metrics);
+      } else {
+        throw new Error('Xử lý ảnh không thành công');
       }
-    }, 300);
+    } catch (err) {
+      setError(err.message);
+      console.error('Error processing image:', err);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -81,7 +80,7 @@ function App() {
       <div className="container mx-auto px-4 py-8">
         <header className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-800 mb-2">
-            Hệ Thống Xử Lý Ảnh Phong Cảnh
+            Hệ Thống Xử Lý Ảnh
           </h1>
           <p className="text-gray-600">
             Sử dụng Biến Đổi Fourier 2D để khử nhiễu và xử lý ảnh
@@ -92,12 +91,13 @@ function App() {
           {/* Cột trái: Upload và Filter Control */}
           <div className="lg:col-span-1 space-y-6">
             <div className="bg-white p-6 rounded-lg shadow-md">
-              <h2 className="text-xl font-semibold mb-4">Upload Ảnh</h2>
+              <h2 className="text-blue-950 text-xl font-semibold mb-4">Upload Ảnh</h2>
               <ImageUploader onImageSelect={handleImageSelect} />
             </div>
 
             <FilterControl
               onFilterChange={handleFilterChange}
+              onProcessClick={handleProcessImage}
               disabled={!originalImage || isProcessing}
             />
           </div>

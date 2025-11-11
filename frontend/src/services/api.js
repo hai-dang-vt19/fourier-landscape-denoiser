@@ -1,11 +1,14 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// Sử dụng relative URL để tận dụng Vite proxy (tránh CORS issues)
+// Hoặc absolute URL nếu có VITE_API_URL được set (cho production)
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 /**
  * Gọi API health check
  */
 export const healthCheck = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/health`);
+    const url = API_BASE_URL ? `${API_BASE_URL}/api/health` : '/api/health';
+    const response = await fetch(url);
     return await response.json();
   } catch (error) {
     throw new Error(`Lỗi kết nối API: ${error.message}`);
@@ -44,14 +47,31 @@ export const processImage = async (imageBase64, filterParams) => {
       formData.append('bandwidth', filterParams.bandwidth);
     }
 
-    const response = await fetch(`${API_BASE_URL}/api/process`, {
+    // Thêm timeout 60 giây cho request xử lý ảnh
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000000);
+    
+    const url = API_BASE_URL ? `${API_BASE_URL}/api/process` : '/api/process';
+    const response = await fetch(url, {
       method: 'POST',
       body: formData,
+      signal: controller.signal,
     });
+    
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Lỗi xử lý ảnh');
+      // Thử đọc error message từ JSON
+      let errorMessage = 'Lỗi xử lý ảnh';
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorMessage;
+      } catch (e) {
+        // Nếu không parse được JSON, lấy text
+        const errorText = await response.text();
+        errorMessage = errorText || `HTTP ${response.status}: ${response.statusText}`;
+      }
+      throw new Error(errorMessage);
     }
 
     return await response.json();
@@ -69,7 +89,8 @@ export const uploadImage = async (file) => {
     const formData = new FormData();
     formData.append('image', file);
 
-    const response = await fetch(`${API_BASE_URL}/api/upload`, {
+    const url = API_BASE_URL ? `${API_BASE_URL}/api/upload` : '/api/upload';
+    const response = await fetch(url, {
       method: 'POST',
       body: formData,
     });

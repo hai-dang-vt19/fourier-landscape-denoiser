@@ -146,24 +146,38 @@ def bandreject_filter(height: int, width: int, center_freq: float, bandwidth: fl
         return mask
     
     elif filter_type == 'butterworth':
-        # Butterworth band-reject
-        D_squared = distance**2
-        D0_squared = center_freq**2
-        W_squared = bandwidth**2
+        # Butterworth band-reject filter
+        # Công thức: H(u,v) = 1 / (1 + [D(u,v)W / (D²(u,v) - D₀²)]^(2n))
+        # Với n=2 (order=2): H(u,v) = 1 / (1 + [D(u,v)W / (D²(u,v) - D₀²)]^4)
+        D = distance
+        D0 = center_freq
+        W = bandwidth
+        order = 2  # Có thể thêm order parameter nếu cần
+        
         # Tránh chia cho 0
-        denominator = D_squared - D0_squared
+        denominator = D**2 - D0**2
         denominator = np.where(np.abs(denominator) < 1e-10, 1e-10, denominator)
-        mask = 1.0 / (1.0 + ((D_squared * W_squared) / (denominator**2 + 1e-10)) ** 2)
+        
+        # Tính [D*W / (D² - D₀²)]^(2*order)
+        ratio = (D * W) / denominator
+        mask = 1.0 / (1.0 + ratio ** (2 * order))
         return mask
     
     elif filter_type == 'gaussian':
-        # Gaussian band-reject
-        D_squared = distance**2
-        D0_squared = center_freq**2
-        W_squared = bandwidth**2
-        denominator = D_squared - D0_squared
-        denominator = np.where(np.abs(denominator) < 1e-10, 1e-10, denominator)
-        mask = 1.0 - np.exp(-((denominator**2) / (D_squared * W_squared + 1e-10)))
+        # Gaussian band-reject filter
+        # Công thức: H(u,v) = 1 - exp(-[(D²(u,v) - D₀²)² / (D(u,v)W)²])
+        D = distance
+        D0 = center_freq
+        W = bandwidth
+        
+        # Tránh chia cho 0
+        denominator = D**2 - D0**2
+        # Tính [(D² - D₀²)² / (DW)²]
+        numerator = denominator**2
+        denominator_sq = (D * W)**2
+        denominator_sq = np.where(denominator_sq < 1e-10, 1e-10, denominator_sq)
+        
+        mask = 1.0 - np.exp(-(numerator / denominator_sq))
         return mask
     
     else:

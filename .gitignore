@@ -38,6 +38,8 @@ ENV/
 .env
 .env.local
 .env.*.local
+# Allow .env.example files
+!.env.example
 
 # Node
 node_modules/
