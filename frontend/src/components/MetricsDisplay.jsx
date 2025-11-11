@@ -2,7 +2,7 @@ const MetricsDisplay = ({ metrics }) => {
   if (!metrics) {
     return (
       <div className="bg-white p-6 rounded-lg shadow-md">
-        <h3 className="text-xl font-semibold mb-4">Chỉ Số Đánh Giá</h3>
+        <h3 className="text-blue-950 text-xl font-semibold mb-4">Chỉ Số Đánh Giá</h3>
         <p className="text-gray-500">Chưa có dữ liệu metrics</p>
       </div>
     );
@@ -12,7 +12,7 @@ const MetricsDisplay = ({ metrics }) => {
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
-      <h3 className="text-xl font-semibold mb-4">Chỉ Số Đánh Giá</h3>
+      <h3 className="text-blue-950 text-xl font-semibold mb-4">Chỉ Số Đánh Giá</h3>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-blue-50 p-4 rounded-lg">
           <h4 className="text-sm font-medium text-blue-700 mb-1">MSE</h4>
